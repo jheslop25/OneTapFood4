@@ -77,7 +77,6 @@ class AddRecipies extends Command
             if(isset($ingredData['foods'][0])){
                 $this->info($ingredData['foods'][0]['food_name']);
                 $this->info(var_dump($ingredData['foods'][0]['other_measures']));
-            
             }
             // break;
         }

@@ -15,6 +15,10 @@ class CreateIngredientConversionsTable extends Migration
     {
         Schema::create('ingredient_conversions', function (Blueprint $table) {
             $table->id();
+            $table->bigInteger('ingredient_id');
+            $table->string('measure');
+            $table->float('serving_weight', 8, 2);
+            $table->float('quantity', 8, 2);
             $table->timestamps();
         });
     }
