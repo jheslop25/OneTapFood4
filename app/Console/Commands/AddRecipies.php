@@ -63,11 +63,20 @@ class AddRecipies extends Command
 
                 $recipe = new Recipe();
 
-                $recipe->name = $recipeJson[0]['name']; // Set recipe name
-                $recipe->description = $recipeJson[0]['description']; // set description
+                // Set recipe name
+                $recipe->name = $recipeJson[0]['name']; 
 
-                if ($recipeJson[0]['prep-time'] != null) { // check if data contains prep time
+                // set description
+                $recipe->description = $recipeJson[0]['description']; 
+                
+                // set source url
+                $recipe->source_url = $detail['sourceUrl']; 
 
+                // check if data contains prep time
+                if ($recipeJson[0]['prep-time'] != null) { 
+
+
+                    //regex the data to get a useable time formate
                     $prepRegRes = Regex::match('/(\d*)H(\d*)M/', $recipeJson[0]['prep-time']); // regex this
 
                     $prep = intval($prepRegRes->group(1)) * 60 + floatval($prepRegRes->group(2));
@@ -75,20 +84,55 @@ class AddRecipies extends Command
                     $prep = 0;
                 }
 
-                $recipe->prep_time = $prep; // set prep time
+                // set prep time
+                $recipe->prep_time = $prep; 
 
+                // regex cook time param
                 $cookRegRes = Regex::match('/(\d*)H(\d*)M/', $recipeJson[0]['cook-time']); // regex this
 
+                // set the regex results to a variable we can use
                 $cook = intval($cookRegRes->group(1)) * 60 + floatval($cookRegRes->group(2));
 
+
+                // set cook time
                 $recipe->cook_time = $cook;
 
+
+                //set total time
+                $recipe->total_time = $cook + $prep;
+
+                // regex portions field from data
                 $portions = intval(Regex::match('/(\d*).*/', $recipeJson[0]['yield'])->group(1)); // MOAR regex
 
+                // set yield
                 $recipe->yield = $portions;
 
-                // finish building out recipe model.
+                // set dish types
+                $recipe->meal_types = $recipeJson[0]['dishTypes'];
 
+
+                // set diets 
+                $recipe->diets = $recipeJson[0]['diets'];
+
+                // set cuisines
+                $recipe->cuisines = $recipeJson[0]['cuisines'];
+
+                // set spoon id for future reference i.e wine recommendation.
+                $recipe->spoon_id = $recipeJson[0]['id'];
+
+                //set vegetarian bool
+                $recipe->vegetarian = $recipeJson[0]['vegetarian'];
+
+                //set vegan bool
+                $recipe->vegan = $recipeJson[0]['vegan'];
+
+                // set gluten free bool
+                $recipe->gluten_free = $recipeJson[0]['glutenFree'];
+
+                //set dairy free bool
+                $recipe->dairy_free = $recipeJson[0]['dairyFree'];
+
+                //parse ingredients from their strings this was always the cunty bit
                 $parsed = $parser->parse($recipeJson[0]['ingredients']);
 
                 foreach ($parsed['results'] as $item) {

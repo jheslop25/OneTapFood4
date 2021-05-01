@@ -41,6 +41,7 @@ class CreateRecipesTable extends Migration
             $table->boolean('glutten_free')->default(false);
             $table->boolean('vegan')->default(false);
             $table->boolean('vegetarian')->default(false);
+            $table->boolean('dairy_free')->default(false);
             $table->timestamps();
         });
     }
