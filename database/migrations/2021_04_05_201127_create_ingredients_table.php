@@ -16,7 +16,7 @@ class CreateIngredientsTable extends Migration
         Schema::create('ingredients', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('food_group');
+            $table->string('food_group')->nullable();
             $table->string('photo_url')->nullable();
             $table->string('thumb_url')->nullable();
             $table->timestamps();

@@ -18,7 +18,7 @@ class CreateIngredientNutrientsTable extends Migration
             $table->bigInteger('ingredient_id');
             $table->string('name');
             $table->string('unit');
-            $table->float('value', 8, 4);
+            $table->float('value', 30, 4);
             $table->timestamps();
         });
     }

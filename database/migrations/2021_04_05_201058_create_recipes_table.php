@@ -38,7 +38,7 @@ class CreateRecipesTable extends Migration
             $table->json('diets')->nullable();
             $table->json('cuisines')->nullable();
             $table->bigInteger('spoon_id')->nullable();
-            $table->boolean('glutten_free')->default(false);
+            $table->boolean('gluten_free')->default(false);
             $table->boolean('vegan')->default(false);
             $table->boolean('vegetarian')->default(false);
             $table->boolean('dairy_free')->default(false);
