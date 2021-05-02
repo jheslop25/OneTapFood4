@@ -2,14 +2,19 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Ingredient;
+use App\Models\IngredientConversion;
+use App\Models\IngredientNutrient;
 use App\Models\Recipe;
 use App\Services\CookBookApi;
 use App\Services\NutriSApi;
 use App\Services\ParseApi;
 use App\Services\SpoonApi;
+use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use PhpUnitConversion\Unit;
 use Spatie\Regex\Regex;
 
 class AddRecipies extends Command
@@ -50,6 +55,9 @@ class AddRecipies extends Command
         $parser = new ParseApi();
         $NutriS = new NutriSApi();
 
+        // set save data variable. we'll use this to indicate that we want persist the results
+        $save = false;
+
         $spoon->setTotalReturn(1);
 
         $basicSearch = $spoon->search('chicken', 'onions', 40, 0);
@@ -64,16 +72,16 @@ class AddRecipies extends Command
                 $recipe = new Recipe();
 
                 // Set recipe name
-                $recipe->name = $recipeJson[0]['name']; 
+                $recipe->name = $recipeJson[0]['name'];
 
                 // set description
-                $recipe->description = $recipeJson[0]['description']; 
-                
+                $recipe->description = $recipeJson[0]['description'];
+
                 // set source url
-                $recipe->source_url = $detail['sourceUrl']; 
+                $recipe->source_url = $detail['sourceUrl'];
 
                 // check if data contains prep time
-                if ($recipeJson[0]['prep-time'] != null) { 
+                if ($recipeJson[0]['prep-time'] != null) {
 
 
                     //regex the data to get a useable time formate
@@ -85,7 +93,7 @@ class AddRecipies extends Command
                 }
 
                 // set prep time
-                $recipe->prep_time = $prep; 
+                $recipe->prep_time = $prep;
 
                 // regex cook time param
                 $cookRegRes = Regex::match('/(\d*)H(\d*)M/', $recipeJson[0]['cook-time']); // regex this
@@ -132,19 +140,178 @@ class AddRecipies extends Command
                 //set dairy free bool
                 $recipe->dairy_free = $recipeJson[0]['dairyFree'];
 
+
                 //parse ingredients from their strings this was always the cunty bit
                 $parsed = $parser->parse($recipeJson[0]['ingredients']);
 
+                // loop through parsed results and pull full data from NutriS Api
                 foreach ($parsed['results'] as $item) {
+
+
                     $this->info($item['ingredientRaw']);
                     $query = $item['ingredientParsed']['quantity'] . ' ' . $item['ingredientParsed']['unit'] . ' ' . Regex::replace('/(\s)/', '-', $item['ingredientParsed']['product'])->result();
                     $this->info($query);
                     $ingredData = $NutriS->search($query);
+
+                    // check for result from query
                     if (isset($ingredData['foods'][0])) {
                         $this->info($ingredData['foods'][0]['food_name']);
+
+                        if (!Ingredient::where('name', $ingredData['foods'][0]['food_name'])->exists()) {
+                            // run 100 gram standard query 
+                            $standardQuery = '100 grams of' . Regex::replace('/(\s)/', '-', $item['ingredientParsed']['product'])->result();
+                            $ingredientStandardData = $NutriS->search($standardQuery);
+
+                            // instantiate new ingredient class;
+                            $ingredient = new Ingredient();
+
+                            // set ingredient name
+                            $ingredient->name = $ingredData['foods'][0]['food_name'];
+
+                            // set ingredient food group
+                            $ingredient->food_group = $ingredData['foods'][0]['food_group'];
+
+                            // set ingredient photo 
+                            $ingredient->photo_url = $ingredData['foods'][0]['photo']['high_res'] ?? null;
+
+                            // set ingredient thumbnail
+                            $ingredient->thumb_url = $ingredData['foods'][0]['photo']['thumbnail'] ?? null;
+
+                            // save the ingredient
+                            if ($save) {
+                                $ingredient->save();
+                            }
+
+                            // loop through other measures array in json and create ingredient conversions
+                            foreach ($ingredData['foods'][0]['other_measures'] as $measure) {
+                                // instantiate new IngredientConversion class 
+                                $conversion = new IngredientConversion();
+
+                                // set measure
+                                $conversion->measure = $measure['measure'];
+
+                                // set serving weight in grams
+                                $conversion->serving_weight = floatval($measure['serving_weight']);
+
+                                // set quantity
+                                $conversion->quantity = floatval($measure['qty']);
+
+                                if ($save) {
+                                    // set ingredient id via eloquent relationship method
+                                    $conversion->ingredient()->associate($ingredient);
+
+                                    // save conversion
+                                    $conversion->save();
+                                }
+                            }
+
+                            // loop through standardized nutrition data for the ingredient
+                            foreach ($ingredientStandardData['foods'][0]['full_nutrient_breakdown'] as $nutrientData) {
+                                // instantiate new IngredientNutrient class
+                                $nutrient = new IngredientNutrient();
+
+                                // set nutrient name
+                                $nutrient->name = $nutrientData['name'];
+
+                                // set nutrient unit
+                                $nutrient->unit = $nutrientData['unit'];
+
+                                // set nutrient value
+                                $nutrient->value = floatval($nutrientData['value']);
+
+                                if ($save) {
+                                    // set ingredient id via eloquent
+                                    $nutrient->ingredient()->associate($ingredient);
+
+                                    // save nutrient
+                                    $nutrient->save();
+                                }
+                            }
+                        } else {
+                            $ingredient = Ingredient::where('name', $ingredData['foods'][0]['food_name'])->first();
+                        }
+
+                        if (isset($ingredData['foods'][0]['calories'])) {
+                            // add ingredient calories to recipe total
+                            $recipe->total_cals += floatval($ingredData['foods'][0]['calories']);
+                        }
+
+                        if (isset($ingredData['foods'][0]['protein'])) {
+                            // add ingredient protein to total
+                            $recipe->protein += floatval($ingredData['foods'][0]['protein']);
+                        }
+
+                        if(isset($ingredData['foods'][0]['total_fat'])){
+                            // add ingredient total fat to recipe total
+                            $recipe->fat += floatval($ingredData['foods'][0]['total_fat']);
+                        }
+
+                        if(isset($ingredData['foods'][0]['total_carbohydrate'])){
+                            // add carbs to recipe
+                            $recipe->carbs += floatval($ingredData['foods'][0]['total_carbohydrate']);
+                        }
+
+                        if(isset($ingredData['foods'][0]['saturated_fat'])){
+                            // add sat fat
+                            $recipe->sat_fat += floatval($ingredData['foods'][0]['saturated_fat']);
+                        }
+
+                        if(isset($ingredData['foods'][0]['cholesterol'])){
+                            // add cholesterol
+                            $recipe->cholesterol += floatval($ingredData['foods'][0]['cholesterol']);
+                        }
+
+                        if(isset($ingredData['foods'][0]['dietary_fiber'])){
+                            // add fibre
+                            $recipe->dietary_fibre += floatval($ingredData['foods'][0]['dietary_fiber']);
+                        }
+
+                        if(isset($ingredData['foods'][0]['sodium'])){
+                            // add ingredient sodium
+                            $recipe->sodium += floatval($ingredData['foods'][0]['sodium']);
+                        }
+
+                        if(isset($ingredData['foods'][0]['sugars'])){
+                            // add sugars
+                            $recipe->sugars += floatval($ingredData['foods'][0]['sugars']);
+                        }
+
+                        if(isset($ingredData['foods'][0]['potassium'])){
+                            // add potassium
+                            $recipe->potassium += floatval($ingredData['foods'][0]['potassium']);
+                        }
+
+                        if(isset($ingredData['foods'][0]['serving_weight_in_grams'])){
+                            // add ingredient serving weight in grams
+                            $recipe->serving_weight_grams += floatval($ingredData['foods'][0]['serving_weight_in_grams']);
+                        }
+
+                        if($save){
+                            try {
+                                // create a php unit mass/gram class for full ingredient amount
+                                $fullAmount = Unit::from(strval($ingredData['foods'][0]['serving_weight_in_grams']) . ' grams');
+                            } catch (Exception $e){
+                                Log::debug($e->getMessage());
+                            }
+
+                            try {
+                                // create a php unit mass/gram class for per serving ingredient amount
+                                $perServing = Unit::from(strval($ingredData['foods'][0]['serving_weight_in_grams'] / $recipe->yield) . ' grams');
+                            } catch (Exception $e){
+                                Log::debug($e->getMessage());
+                            }
+                            
+                            // attach ingredient to recipe
+                            $recipe->ingredients()->attach($ingredient->id, ['full_serving_amount' => $fullAmount(), 'per_serving_amount' => $perServing(), 'display_text', $item['ingredientRaw']]);
+                        }
                     } else {
-                        Log::debug("Ingredient not for for query" . $query);
+                        Log::debug("Ingredient not found for query" . $query);
                     }
+                }
+
+                // save the recipe
+                if ($save) {
+                    $recipe->save();
                 }
             }
         }
