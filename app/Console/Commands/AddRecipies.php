@@ -50,7 +50,7 @@ class AddRecipies extends Command
      */
     public function handle()
     {
-        $spoon = new SpoonApi('whole30', null, 'main course');
+        $spoon = new SpoonApi('', null, 'main course');
         $cookbook = new CookBookApi();
         $parser = new ParseApi();
         $NutriS = new NutriSApi();
@@ -58,9 +58,9 @@ class AddRecipies extends Command
         // set save data variable. we'll use this to indicate that we want persist the results
         $save = true;
 
-        $spoon->setTotalReturn(1);
+        $spoon->setTotalReturn(4);
 
-        $basicSearch = $spoon->search('chicken', 'onions', 40, 0);
+        $basicSearch = $spoon->search('pork', 'potatoes', 40, 1);
 
         foreach ($basicSearch['results'] as $basic) {
 
@@ -83,11 +83,24 @@ class AddRecipies extends Command
                 // check if data contains prep time
                 if ($recipeJson[0]['prep-time'] != null) {
 
-
+                    $this->info($recipeJson[0]['prep-time']);
                     //regex the data to get a useable time formate
                     $prepRegRes = Regex::match('/(\d*)H(\d*)M/', $recipeJson[0]['prep-time']); // regex this
 
-                    $prep = intval($prepRegRes->group(1)) * 60 + floatval($prepRegRes->group(2));
+                    try {
+                       $hours = $prepRegRes->group(1);
+                    } catch (Exception $e){
+                        Log::debug($e->getMessage());
+                        $hours = 0;
+                    }
+
+                    try {
+                        $mins = $prepRegRes->group(2);
+                    } catch(Exception $e){
+                        $mins = 0;
+                        Log::debug($e->getMessage());
+                    }
+                    $prep = intval($hours) * 60 + floatval($mins);
                 } else {
                     $prep = 0;
                 }
@@ -98,8 +111,28 @@ class AddRecipies extends Command
                 // regex cook time param
                 $cookRegRes = Regex::match('/(\d*)H(\d*)M/', $recipeJson[0]['cook-time']); // regex this
 
-                // set the regex results to a variable we can use
-                $cook = intval($cookRegRes->group(1)) * 60 + floatval($cookRegRes->group(2));
+                if ($recipeJson[0]['cook-time'] != null) {
+                    // set the regex results to a variable we can use
+
+                    try {
+                        $cookH = $cookRegRes->group(1);
+                    } catch (Exception $e){
+                        Log::debug($e->getMessage());
+                        $cookH = 0;
+                    }
+
+                    try {
+                        $cookM = $cookRegRes->group(2);
+                    } catch(Exception $e){
+                        Log::debug($e->getMessage());
+                        $cookM = 0;
+                    }
+
+                    $cook = intval($cookH) * 60 + floatval($cookM);
+                } else {
+                    $cook = 0;
+                }
+
 
 
                 // set cook time
