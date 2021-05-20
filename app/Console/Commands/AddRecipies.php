@@ -58,10 +58,10 @@ class AddRecipies extends Command
         // set save data variable. we'll use this to indicate that we want persist the results
         $save = true;
 
-        $spoon->setTotalReturn(4);
+        $spoon->setTotalReturn(8);
 
-        $basicSearch = $spoon->search('pork', 'potatoes', 40, 1);
-
+        $basicSearch = $spoon->search('salmon', 'rice', 60, 8);
+        $this->info(var_dump($basicSearch));
         foreach ($basicSearch['results'] as $basic) {
 
             $detailed = $spoon->getInfo($basic['id']);
@@ -88,15 +88,15 @@ class AddRecipies extends Command
                     $prepRegRes = Regex::match('/(\d*)H(\d*)M/', $recipeJson[0]['prep-time']); // regex this
 
                     try {
-                       $hours = $prepRegRes->group(1);
-                    } catch (Exception $e){
+                        $hours = $prepRegRes->group(1);
+                    } catch (Exception $e) {
                         Log::debug($e->getMessage());
                         $hours = 0;
                     }
 
                     try {
                         $mins = $prepRegRes->group(2);
-                    } catch(Exception $e){
+                    } catch (Exception $e) {
                         $mins = 0;
                         Log::debug($e->getMessage());
                     }
@@ -116,14 +116,14 @@ class AddRecipies extends Command
 
                     try {
                         $cookH = $cookRegRes->group(1);
-                    } catch (Exception $e){
+                    } catch (Exception $e) {
                         Log::debug($e->getMessage());
                         $cookH = 0;
                     }
 
                     try {
                         $cookM = $cookRegRes->group(2);
-                    } catch(Exception $e){
+                    } catch (Exception $e) {
                         Log::debug($e->getMessage());
                         $cookM = 0;
                     }
@@ -176,9 +176,15 @@ class AddRecipies extends Command
                 $recipe->dairy_free = $detail['dairyFree'];
 
                 // save the recipe
-                if ($save) {
-                    $recipe->save();
+                if (isset($recipeJson[0]['ingredients'])) {
+                    if ($save) {
+                        $recipe->save();
+                    }
+                } else {
+                    continue;
                 }
+
+
 
                 //parse ingredients from their strings this was always the cunty bit
                 $parsed = $parser->parse($recipeJson[0]['ingredients']);
@@ -337,7 +343,11 @@ class AddRecipies extends Command
                             // try {
                             //     // create a php unit mass/gram class for per serving ingredient amount
                             //     $this->info($ingredData['foods'][0]['serving_weight_in_grams'] / $recipe->yield);
-                            $perServing = Unit::from(strval($ingredData['foods'][0]['serving_weight_in_grams'] / $recipe->yield) . ' g');
+                            if ($recipe->yield > 0) {
+                                $perServing = Unit::from(strval($ingredData['foods'][0]['serving_weight_in_grams'] / $recipe->yield) . ' g');
+                            } else {
+                                $perServing = Unit::from(strval($ingredData['foods'][0]['serving_weight_in_grams']) . ' g');
+                            }
                             $this->info($perServing());
                             // } catch (Exception $e){
                             //     Log::debug($e->getMessage());

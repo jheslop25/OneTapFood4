@@ -127,6 +127,7 @@ class SpoonApi {
             } else {
                 Log::debug($result->status());
                 Log::debug(var_dump($result->body()));
+                return $result->body();
             }
         } catch (Exception $e){
             Log::debug($e->getMessage());
