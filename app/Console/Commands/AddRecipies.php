@@ -60,7 +60,7 @@ class AddRecipies extends Command
 
         $spoon->setTotalReturn(8);
 
-        $basicSearch = $spoon->search('salmon', 'rice', 60, 8);
+        $basicSearch = $spoon->search('soup', 'rice', 30, 0);
         $this->info(var_dump($basicSearch));
         foreach ($basicSearch['results'] as $basic) {
 
@@ -191,10 +191,12 @@ class AddRecipies extends Command
 
                 // loop through parsed results and pull full data from NutriS Api
                 foreach ($parsed['results'] as $item) {
-
+                    if(!isset($item['ingredientParsed'])){
+                        continue;
+                    }
 
                     $this->info($item['ingredientRaw']);
-                    $query = $item['ingredientParsed']['quantity'] . ' ' . $item['ingredientParsed']['unit'] . ' ' . Regex::replace('/(\s)/', '-', $item['ingredientParsed']['product'])->result();
+                    $query = ($item['ingredientParsed']['quantity'] != null ? $item['ingredientParsed']['quantity'] : '') . ' ' . ($item['ingredientParsed']['unit'] != null ? $item['ingredientParsed']['unit'] : '' )  . ' ' . Regex::replace('/(\s)/', '-', ($item['ingredientParsed']['product'] != null ? $item['ingredientParsed']['product'] : ''))->result();
                     $this->info($query);
                     $ingredData = $NutriS->search($query);
 
