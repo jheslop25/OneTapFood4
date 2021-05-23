@@ -29,6 +29,7 @@ namespace App\Services;
 */
 
 use App\Models\Ingredient;
+use Illuminate\Support\Facades\Log;
 use PhpUnitConversion\System;
 use PhpUnitConversion\Unit as Unit;
 use PhpUnitConversion\Unit\Mass;
@@ -152,7 +153,7 @@ class UnitConverter
                         }
                     } catch (\Exception $e) {
                         $msg = $e->getMessage();
-                        // $final = null;
+                        Log::debug($msg);
                     }
                 }
             }
@@ -173,7 +174,6 @@ class UnitConverter
     {
         $msg = UnitMap::add('./Units/', 'App\Exceptions\Units');
 
-        // $final = null;
 
         foreach ($conversions as $conversion) {
             foreach ($this->unitsOfVolume as $uVol) {
@@ -194,7 +194,7 @@ class UnitConverter
                         }
                     } catch (\Exception $e) {
                         $msg = $e->getMessage();
-                        // $final = null;
+                        Log::debug($msg);
                     }
                 }
             }

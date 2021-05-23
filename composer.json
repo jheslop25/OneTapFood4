@@ -15,6 +15,7 @@
         "laravel/scout": "^8.6",
         "laravel/tinker": "^2.5",
         "osiset/laravel-shopify": "^16.0",
+        "parsecsv/php-parsecsv": "^1.3",
         "php-unit-conversion/php-unit-conversion": "^1.30",
         "spatie/regex": "^1.4"
     },
