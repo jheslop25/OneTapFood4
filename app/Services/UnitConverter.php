@@ -94,7 +94,7 @@ class UnitConverter
             }
         } else if ($current::TYPE == 1 && $change::TYPE == 4) {
 
-            $conMass = $this->getVolToMassGramsConversion(json_decode($ingredient->conversions), $state, $change);
+            $conMass = $this->getVolToMassGramsConversion($ingredient->conversions()->get(), $state, $change);
 
             if ($type == 'add') {
                 $final = $this->add($current, $conMass);
@@ -103,7 +103,7 @@ class UnitConverter
             }
         } else if ($current::TYPE == 4 && $change::TYPE == 1) {
 
-            $conVol = $this->getMassGramToVolConversion(json_decode($ingredient->conversions), $state, $change);
+            $conVol = $this->getMassGramToVolConversion($ingredient->conversions()->get(), $state, $change);
             return $conVol;
             if ($type == 'add') {
                 $final = $this->add($current, $conVol);
@@ -129,7 +129,7 @@ class UnitConverter
     {
     }
 
-    protected function getVolToMassGramsConversion(array $conversions, String $state = null, Unit $change)
+    protected function getVolToMassGramsConversion($conversions, String $state = null, Unit $change)
     {
 
         $final = null;
@@ -140,7 +140,7 @@ class UnitConverter
                 if (Regex::match('/' . $uVol . '/', $conversion->measure)->hasMatch()) {
                     $unitString = Regex::match('/' . $uVol . '/', $conversion->measure)->result();
                     try {
-                        $unit = Unit::from(strval($conversion->qty) . ' ' . $unitString);
+                        $unit = Unit::from(strval($conversion->quantity) . ' ' . $unitString);
                         if ($unit::TYPE == 4) {
                             // do some stuff
                             $base = Unit::from($unit());
@@ -169,7 +169,7 @@ class UnitConverter
         }
     }
 
-    protected function getMassGramToVolConversion(array $conversions, String $state = null, Unit $change)
+    protected function getMassGramToVolConversion($conversions, String $state = null, Unit $change)
     {
         $msg = UnitMap::add('./Units/', 'App\Exceptions\Units');
 
@@ -180,7 +180,7 @@ class UnitConverter
                 if (Regex::match('/[[:<:]]' . $uVol . '[[:>:]]/', $conversion->measure)->hasMatch()) {
                     $unitString = Regex::match('/' . $uVol . '/', $conversion->measure)->result();
                     try {
-                        $unit = Unit::from(strval($conversion->qty) . ' ' . $unitString);
+                        $unit = Unit::from(strval($conversion->quantity) . ' ' . $unitString);
                         if ($unit::TYPE == 4) {
                             // do some stuff
                             // $base = Unit::from($unit());

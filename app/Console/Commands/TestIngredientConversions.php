@@ -3,18 +3,18 @@
 namespace App\Console\Commands;
 
 use App\Models\Ingredient;
-use App\Models\Recipe;
 use App\Services\UnitConverter;
 use Illuminate\Console\Command;
+use PhpUnitConversion\Unit\Mass;
 
-class BuildCart extends Command
+class TestIngredientConversions extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'cart:build';
+    protected $signature = 'conversion:test';
 
     /**
      * The console command description.
@@ -40,17 +40,18 @@ class BuildCart extends Command
      */
     public function handle()
     {
-        $recipes = Recipe::all();
-
-        $counter = 0;
+        $ingredients = Ingredient::all();
 
         $converter = new UnitConverter();
 
-        foreach($recipes as $recipe){
-            $ingredients = $recipe->ingredients()->get();
-            foreach($ingredients as $ingredient){
-                // $converter->handle();
-            }
+        $this->info(count($ingredients));
+        foreach($ingredients as $ingredient){
+            // $current = Mass::from('1 lb');
+            // $change = Mass::from('0.5 lb');
+            // $this->info(var_dump($ingredient->conversions()->get()));
+            $result = $converter->handle('1 lb', '0.5 cup', 'subtract', $ingredient);
+
+            $this->info(var_dump($result) . $ingredient->name);
         }
     }
 }
