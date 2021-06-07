@@ -28,7 +28,7 @@ class CreateCropGrowingDataTable extends Migration
             $table->string('temp_abs_min')->nullable();
             $table->string('temp_abs_max')->nullable();
             $table->string('rain_abs_min')->nullable();
-            $table->string('rain_abs_min')->nullable();
+            $table->string('rain_abs_max')->nullable();
             $table->string('lat_opt_min')->nullable();
             $table->string('lat_opt_max')->nullable();
             $table->string('lat_abs_min')->nullable();
